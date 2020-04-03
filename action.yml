@@ -1,0 +1,28 @@
+name: "Pantheon deploy"
+description: "NodeJS action to deploy a branch to Pantheonfor FAST deployment with rsync/ssh"
+author: "irishdistillers"
+inputs:
+  SSH_PRIVATE_KEY: # Private Key
+    description: "Private Key"
+    required: true
+  PANTHEON_MACHINE_TOKEN:
+    description: "Pantheon Machine Token to be used in Terminus"
+    required: true
+  REMOTE_REPO_URL:
+    description: "Remote GIT Repo URL"
+    required: true
+  REMOTE_REPO_NAME:
+    description: "Remote GIT Repo Name"
+    required: true
+  SSH_AUTH_SOCK:
+    description: 'Where to place the SSH Agent auth socket'
+    default: /tmp/ssh-auth.sock
+outputs:
+  multidev-url:
+    description: "URL to access the created multidev"
+runs:
+  using: "node12"
+  main: "dist/index.js"
+branding:
+  color: "green"
+  icon: "truck"

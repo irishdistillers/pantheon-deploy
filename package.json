@@ -1,0 +1,33 @@
+{
+  "name": "pantheon-deploy",
+  "version": "0.0.1",
+  "description": "This GitHub Action deploys your current issue branch to a remote Pantheon repo.",
+  "main": "src/index.js",
+  "dependencies": {
+    "@actions/core": "^1.2.0",
+    "@actions/github": "^2.1.0",
+    "@actions/exec": "^1.0.3",
+    "child_process": "^1.0.2"
+  },
+  "devDependencies": {
+    "@zeit/ncc": "^0.20.5"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "ncc build ./src/index.js -o dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/irishdistillers/pantheon-deploy.git"
+  },
+  "keywords": [
+    "deploy",
+    "pantheon"
+  ],
+  "author": "Irishdistillers",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/irishdistillers/pantheon-deploy/issues"
+  },
+  "homepage": "https://github.com/irishdistillers/pantheon-deploy#readme"
+}
