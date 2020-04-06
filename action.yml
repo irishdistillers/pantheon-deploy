@@ -11,7 +11,7 @@ inputs:
     description: "Remote GIT Repo Name"
     required: true
   PR_STATE:
-    description: "State of the PR that triggered the action"
+    description: "State of the PR that triggered the action (open/close)"
     required: true
   STRICT_BRANCH_NAMES:
     description: "(optional) Set to `strict` if you want your branch names to only look like Jira tickets (ABC-1234)"

@@ -46,16 +46,7 @@ This Github actions required that you:
 ```
 
 ```
-  - name: Merge corresponding multidev to dev in pantheon
-    uses: irishdistillers/pantheon-deploy@master
-    env:
-      PR_STATE: 'merge'
-      PANTHEON_MACHINE_TOKEN: ${{ secrets.PANTHEON_MACHINE_TOKEN }}
-      REMOTE_REPO_NAME: 'name'
-```
-
-```
-  - name: Delete corresponding multidev in pantheon
+  - name: Delete/merge corresponding multidev in pantheon
     uses: irishdistillers/pantheon-deploy@master
     env:
       PR_STATE: 'close'

@@ -9654,13 +9654,6 @@ const pantheonDeploy = (() => {
                     strictBranchName
                 );
                 break;
-            case "merge":
-                merge(
-                    machineToken,
-                    pantheonRepoName,
-                    pullRequest,
-                );
-                break;
             case "close":
                 close(
                     machineToken,
@@ -9683,22 +9676,19 @@ const pantheonDeploy = (() => {
         buildMultiDev(pantheonRepoName, pullRequest);
     };
 
-    const merge = ({
-        pantheonRepoName,
-        pullRequest,
-        machineToken
-    }) => {
-        setupTerminus(machineToken);
-        mergedMultiDev(pantheonRepoName, pullRequest);
-    };
-
     const close = ({
         pantheonRepoName,
         pullRequest,
         machineToken
     }) => {
+
         setupTerminus(machineToken);
-        deleteMultiDev(pantheonRepoName, pullRequest);
+
+        if (pullRequest.merged == true) {
+            mergeMultiDev(pantheonRepoName, pullRequest);
+        } else if (pullRequest.merged == false) {
+            deleteMultiDev(pantheonRepoName, pullRequest);
+        }
     };
 
     const checkBranch = (prName, strictBranchName) => {
@@ -9750,7 +9740,7 @@ const pantheonDeploy = (() => {
         }
     }
 
-    async function mergedMultiDev(pantheonRepoName, pullRequest) {
+    async function mergeMultiDev(pantheonRepoName, pullRequest) {
         try {
 
             await exec.exec('terminus', ['multidev:merge-to-dev', pantheonRepoName, pullRequest.head.ref]);
