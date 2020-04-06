@@ -85,7 +85,7 @@ const pantheonDeploy = (() => {
         if (prName.length > 11) {
             core.setFailed("Branch name is too long to create a multidev. Branch names need to be 11 characters or less.");
             process.abort();
-        } else if (strictBranchName == "strict" && prName.match(/[A-z]*-[0-9]*/)) {
+        } else if (strictBranchName == "strict" && !prName.match(/[A-z]*-[0-9]*-?[0-9]/)) {
             core.setFailed("Branch name needs to be Jira friendly (ABC-1234)");
             process.abort();
         } else {
@@ -158,7 +158,7 @@ const pantheonDeploy = (() => {
             await exec.exec('terminus', ['multidev:create', pantheonRepoName, pullRequest.head.ref]);
 
             const output = JSON.stringify(child_process.execSync(`terminus env:view --print ${ pantheonRepoName }.${ pullRequest.head.ref }`));
-            console.log('URL to access the multidev is : ' . output);
+            console.log('\n URL to access the multidev is : ' . output);
             core.setOutput('multidev-url', output);
             console.log("\n ✅ Multidev created.");
 
