@@ -37,7 +37,7 @@ This Github actions required that you:
 ```
   - name: Deploy current branch to pantheon
     uses: irishdistillers/pantheon-deploy@master
-    env:
+    with:
       PR_STATE: 'open'
       PANTHEON_MACHINE_TOKEN: ${{ secrets.PANTHEON_MACHINE_TOKEN }}
       REMOTE_REPO_URL: 'url'
@@ -48,7 +48,7 @@ This Github actions required that you:
 ```
   - name: Delete/merge corresponding multidev in pantheon
     uses: irishdistillers/pantheon-deploy@master
-    env:
+    with:
       PR_STATE: 'close'
       PANTHEON_MACHINE_TOKEN: ${{ secrets.PANTHEON_MACHINE_TOKEN }}
       REMOTE_REPO_NAME: 'name'
@@ -57,3 +57,10 @@ This Github actions required that you:
 ## Disclaimer
 
 Use at your own risk.
+
+
+## TODO
+
+- Use `env` instead of `with` in workflow
+- Send comments to PR directly from the action itself
+- npm builds ?

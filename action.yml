@@ -19,6 +19,8 @@ inputs:
 outputs:
   multidev-url:
     description: "URL to access the created multidev"
+  close-state:
+    description: "How the multidev has been closed"
 runs:
   using: "node12"
   main: "dist/index.js"

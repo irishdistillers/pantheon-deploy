@@ -125,6 +125,9 @@ const pantheonDeploy = (() => {
 
             await exec.exec('terminus', ['multidev:merge-to-dev', pantheonRepoName, pullRequest.head.ref]);
 
+            sendToOutput('close-state', 'merged into dev');
+            console.log("\n ✅ Multidev merged.");
+
         } catch (error) {
             core.setFailed(error.message);
             process.abort();
@@ -135,6 +138,9 @@ const pantheonDeploy = (() => {
         try {
 
             await exec.exec('terminus', ['multidev:delete', pantheonRepoName, pullRequest.head.ref]);
+
+            sendToOutput('close-state', 'deleted');
+            console.log("\n ✅ Multidev deleted.");
 
         } catch (error) {
             core.setFailed(error.message);
@@ -147,9 +153,9 @@ const pantheonDeploy = (() => {
 
             await exec.exec('terminus', ['multidev:create', pantheonRepoName, pullRequest.head.ref]);
 
-            const output = JSON.stringify(child_process.execSync(`terminus env:view --print ${ pantheonRepoName }.${ pullRequest.head.ref }`));
-            console.log('\n URL to access the multidev is : ' . output);
-            core.setOutput('multidev-url', output);
+            let multidevUrl = child_process.execSync(`terminus env:view --print ${ pantheonRepoName }.${ pullRequest.head.ref }`);
+            sendToOutput('multidev-url', multidevUrl);
+            console.log('\n URL to access the multidev is : ' . multidevUrl);
             console.log("\n ✅ Multidev created.");
 
         } catch (error) {
@@ -157,6 +163,12 @@ const pantheonDeploy = (() => {
             process.abort();
         }
     }
+
+    const sendToOutput = (outputName, string) => {
+        const output = JSON.stringify(string);
+        core.setOutput(outputName, output);
+    };
+
     return {
         init
     }
