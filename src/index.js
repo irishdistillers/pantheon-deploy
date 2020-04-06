@@ -16,14 +16,27 @@ console.log('GITHUB_WORKSPACE', GITHUB_WORKSPACE);
 
 const pantheonDeploy = (() => {
 
-    const init = ({
+    const open = ({
         pantheonRepoURL,
         pantheonRepoName,
         machineToken,
         pullRequest
     }) => {
+        checkBranch(pullRequest.head.ref, strictBranchName);
         gitBranch(pantheonRepoURL, pullRequest);
         buildMultiDev(machineToken, pantheonRepoName, pullRequest);
+    };
+
+    const checkBranch = (prName, strictBranchName) => {
+        if (prName.length > 11) {
+            core.setFailed("Branch name is too long to create a multidev. Branch names need to be 11 characters or less.");
+            process.abort();
+        } else if (strictBranchName == "strict" && prName.match(/[A-z]*-[0-9]*/)) {
+            core.setFailed("Branch name needs to be Jira friendly (ABC-1234)");
+            process.abort();
+        } else {
+            console.log("\n ✅ Branch name correct.");
+        }
     };
 
     const gitBranch = (pantheonRepoURL, pullRequest) => {
@@ -42,12 +55,41 @@ const pantheonDeploy = (() => {
 
             console.log("\n Pushing branch to Pantheon:");
             child_process.execSync('git push pantheon ' + pullRequest.head.ref + ':' + pullRequest.head.ref);
+            console.log("\n ✅ Branch pushed to Pantheon.");
 
         } catch (error) {
             core.setFailed(error.message);
             process.abort();
         }
     };
+
+    async function merge(machineToken, pantheonRepoName, pullRequest) {
+        try {
+
+            await exec.exec('curl -O https://raw.githubusercontent.com/pantheon-systems/terminus-installer/master/builds/installer.phar');
+            await exec.exec('sudo php installer.phar install'); // Sudo is required in order to install bin/terminus.
+            await exec.exec('terminus', ['auth:login', `--machine-token=${ machineToken }`]);
+            await exec.exec('terminus', ['multidev:merge-to-dev', pantheonRepoName, pullRequest.head.ref]);
+
+        } catch (error) {
+            core.setFailed(error.message);
+            process.abort();
+        }
+    }
+
+    async function close(machineToken, pantheonRepoName, pullRequest) {
+        try {
+
+            await exec.exec('curl -O https://raw.githubusercontent.com/pantheon-systems/terminus-installer/master/builds/installer.phar');
+            await exec.exec('sudo php installer.phar install'); // Sudo is required in order to install bin/terminus.
+            await exec.exec('terminus', ['auth:login', `--machine-token=${ machineToken }`]);
+            await exec.exec('terminus', ['multidev:delete', pantheonRepoName, pullRequest.head.ref]);
+
+        } catch (error) {
+            core.setFailed(error.message);
+            process.abort();
+        }
+    }
 
     async function buildMultiDev(machineToken, pantheonRepoName, pullRequest) {
         try {
@@ -57,17 +99,20 @@ const pantheonDeploy = (() => {
             await exec.exec('terminus', ['auth:login', `--machine-token=${ machineToken }`]);
             await exec.exec('terminus', ['multidev:create', pantheonRepoName, pullRequest.head.ref]);
 
-            output = JSON.stringify(child_process.execSync(`terminus env:view --print ${ pantheonRepoName }.${ pullRequest.head.ref }`));
+            const output = JSON.stringify(child_process.execSync(`terminus env:view --print ${ pantheonRepoName }.${ pullRequest.head.ref }`));
+            console.log('URL to access the multidev is : ' . output);
             core.setOutput('multidev-url', output);
+            console.log("\n ✅ Multidev created.");
 
         } catch (error) {
             core.setFailed(error.message);
             process.abort();
         }
     }
-
     return {
-        init
+        open,
+        merge,
+        close
     }
 })();
 
@@ -86,12 +131,32 @@ const validateInputs = (inputs) => {
 };
 
 const run = () => {
-    pantheonDeploy.init({
-        pantheonRepoURL: core.getInput('REMOTE_REPO_URL'),
-        pantheonRepoName: core.getInput('REMOTE_REPO_NAME'),
-        machineToken: core.getInput('PANTHEON_MACHINE_TOKEN'),
-        pullRequest: github.context.payload.pull_request
-    });
+    let prState = core.getInput('PR_STATE');
+    switch (prState) {
+        case "open":
+            pantheonDeploy.open({
+                pantheonRepoURL: core.getInput('REMOTE_REPO_URL'),
+                pantheonRepoName: core.getInput('REMOTE_REPO_NAME'),
+                machineToken: core.getInput('PANTHEON_MACHINE_TOKEN'),
+                pullRequest: github.context.payload.pull_request,
+                strictBranchName: core.getInput('STRICT_BRANCH_NAMES') || "none",
+            });
+            break;
+        case "merge":
+            pantheonDeploy.merge({
+                machineToken: core.getInput('PANTHEON_MACHINE_TOKEN'),
+                pantheonRepoName: core.getInput('REMOTE_REPO_NAME'),
+                pullRequest: github.context.payload.pull_request,
+            });
+            break;
+        case "close":
+            pantheonDeploy.close({
+                machineToken: core.getInput('PANTHEON_MACHINE_TOKEN'),
+                pantheonRepoName: core.getInput('REMOTE_REPO_NAME'),
+                pullRequest: github.context.payload.pull_request,
+            });
+            break;
+    }
 };
 
 run();
