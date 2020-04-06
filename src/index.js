@@ -29,14 +29,18 @@ const pantheonDeploy = (() => {
     const gitBranch = (pantheonRepoURL, pullRequest) => {
         try {
 
+            console.log("\n 👷 Github initial configuration:");
             child_process.execSync("git config core.sshCommand 'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'");
             child_process.execSync('git remote add pantheon ' + pantheonRepoURL);
 
-            console.log("Git Remote added:");
+            console.log("\n Git Remote added:");
             child_process.execSync('git remote -v');
             child_process.execSync('git fetch --unshallow origin');
 
-            console.log("Pushing branch to Pantheon:");
+            console.log("\n Checkout current branch:");
+            child_process.execSync('git checkout ' + pullRequest.head.ref);
+
+            console.log("\n Pushing branch to Pantheon:");
             child_process.execSync('git push pantheon ' + pullRequest.head.ref + ':' + pullRequest.head.ref);
 
         } catch (error) {
