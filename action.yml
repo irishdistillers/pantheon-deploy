@@ -1,22 +1,21 @@
 name: "Pantheon deploy"
-description: "NodeJS action to deploy a branch to Pantheonfor FAST deployment with rsync/ssh"
+description: "This GitHub Action deploys your current issue branch to a remote Pantheon repo."
 author: "irishdistillers"
 inputs:
-  SSH_PRIVATE_KEY: # Private Key
-    description: "Private Key"
-    required: true
   PANTHEON_MACHINE_TOKEN:
     description: "Pantheon Machine Token to be used in Terminus"
     required: true
   REMOTE_REPO_URL:
     description: "Remote GIT Repo URL"
-    required: true
   REMOTE_REPO_NAME:
     description: "Remote GIT Repo Name"
     required: true
-  SSH_AUTH_SOCK:
-    description: 'Where to place the SSH Agent auth socket'
-    default: /tmp/ssh-auth.sock
+  PR_STATE:
+    description: "State of the PR that triggered the action"
+    required: true
+  STRICT_BRANCH_NAMES:
+    description: "(optional) Set to `strict` if you want your branch names to only look like Jira tickets (ABC-1234)"
+    default: "none"
 outputs:
   multidev-url:
     description: "URL to access the created multidev"

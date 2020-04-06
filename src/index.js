@@ -188,7 +188,7 @@ const validateInputs = (inputs) => {
 
 const run = () => {
     pantheonDeploy.init({
-        prState: core.getInput('PR_STATE'),
+        pullRequestState: core.getInput('PR_STATE'),
         pantheonRepoURL: core.getInput('REMOTE_REPO_URL'),
         pantheonRepoName: core.getInput('REMOTE_REPO_NAME'),
         machineToken: core.getInput('PANTHEON_MACHINE_TOKEN'),
