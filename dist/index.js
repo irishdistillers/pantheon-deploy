@@ -9636,6 +9636,41 @@ console.log('GITHUB_WORKSPACE', GITHUB_WORKSPACE);
 
 const pantheonDeploy = (() => {
 
+    const init = ({
+        prState,
+        pantheonRepoURL,
+        pantheonRepoName,
+        machineToken,
+        pullRequest,
+        strictBranchName
+    }) => {
+        switch (prState) {
+            case "open":
+                open(
+                    pantheonRepoURL,
+                    pantheonRepoName,
+                    machineToken,
+                    pullRequest,
+                    strictBranchName
+                );
+                break;
+            case "merge":
+                merge(
+                    machineToken,
+                    pantheonRepoName,
+                    pullRequest,
+                );
+                break;
+            case "close":
+                close(
+                    machineToken,
+                    pantheonRepoName,
+                    pullRequest
+                );
+                break;
+        }
+    };
+    
     const open = ({
         pantheonRepoURL,
         pantheonRepoName,
@@ -9644,7 +9679,26 @@ const pantheonDeploy = (() => {
     }) => {
         checkBranch(pullRequest.head.ref, strictBranchName);
         gitBranch(pantheonRepoURL, pullRequest);
-        buildMultiDev(machineToken, pantheonRepoName, pullRequest);
+        setupTerminus(machineToken);
+        buildMultiDev(pantheonRepoName, pullRequest);
+    };
+
+    const merge = ({
+        pantheonRepoName,
+        pullRequest,
+        machineToken
+    }) => {
+        setupTerminus(machineToken);
+        mergedMultiDev(pantheonRepoName, pullRequest);
+    };
+
+    const close = ({
+        pantheonRepoName,
+        pullRequest,
+        machineToken
+    }) => {
+        setupTerminus(machineToken);
+        deleteMultiDev(pantheonRepoName, pullRequest);
     };
 
     const checkBranch = (prName, strictBranchName) => {
@@ -9683,12 +9737,22 @@ const pantheonDeploy = (() => {
         }
     };
 
-    async function merge(machineToken, pantheonRepoName, pullRequest) {
+    async function setupTerminus(machineToken) {
         try {
 
             await exec.exec('curl -O https://raw.githubusercontent.com/pantheon-systems/terminus-installer/master/builds/installer.phar');
             await exec.exec('sudo php installer.phar install'); // Sudo is required in order to install bin/terminus.
             await exec.exec('terminus', ['auth:login', `--machine-token=${ machineToken }`]);
+
+        } catch (error) {
+            core.setFailed(error.message);
+            process.abort();
+        }
+    }
+
+    async function mergedMultiDev(pantheonRepoName, pullRequest) {
+        try {
+
             await exec.exec('terminus', ['multidev:merge-to-dev', pantheonRepoName, pullRequest.head.ref]);
 
         } catch (error) {
@@ -9697,12 +9761,9 @@ const pantheonDeploy = (() => {
         }
     }
 
-    async function close(machineToken, pantheonRepoName, pullRequest) {
+    async function deleteMultiDev(pantheonRepoName, pullRequest) {
         try {
 
-            await exec.exec('curl -O https://raw.githubusercontent.com/pantheon-systems/terminus-installer/master/builds/installer.phar');
-            await exec.exec('sudo php installer.phar install'); // Sudo is required in order to install bin/terminus.
-            await exec.exec('terminus', ['auth:login', `--machine-token=${ machineToken }`]);
             await exec.exec('terminus', ['multidev:delete', pantheonRepoName, pullRequest.head.ref]);
 
         } catch (error) {
@@ -9711,12 +9772,9 @@ const pantheonDeploy = (() => {
         }
     }
 
-    async function buildMultiDev(machineToken, pantheonRepoName, pullRequest) {
+    async function buildMultiDev(pantheonRepoName, pullRequest) {
         try {
 
-            await exec.exec('curl -O https://raw.githubusercontent.com/pantheon-systems/terminus-installer/master/builds/installer.phar');
-            await exec.exec('sudo php installer.phar install'); // Sudo is required in order to install bin/terminus.
-            await exec.exec('terminus', ['auth:login', `--machine-token=${ machineToken }`]);
             await exec.exec('terminus', ['multidev:create', pantheonRepoName, pullRequest.head.ref]);
 
             const output = JSON.stringify(child_process.execSync(`terminus env:view --print ${ pantheonRepoName }.${ pullRequest.head.ref }`));
@@ -9730,9 +9788,7 @@ const pantheonDeploy = (() => {
         }
     }
     return {
-        open,
-        merge,
-        close
+        init
     }
 })();
 
@@ -9751,32 +9807,14 @@ const validateInputs = (inputs) => {
 };
 
 const run = () => {
-    let prState = core.getInput('PR_STATE');
-    switch (prState) {
-        case "open":
-            pantheonDeploy.open({
-                pantheonRepoURL: core.getInput('REMOTE_REPO_URL'),
-                pantheonRepoName: core.getInput('REMOTE_REPO_NAME'),
-                machineToken: core.getInput('PANTHEON_MACHINE_TOKEN'),
-                pullRequest: github.context.payload.pull_request,
-                strictBranchName: core.getInput('STRICT_BRANCH_NAMES') || "none",
-            });
-            break;
-        case "merge":
-            pantheonDeploy.merge({
-                machineToken: core.getInput('PANTHEON_MACHINE_TOKEN'),
-                pantheonRepoName: core.getInput('REMOTE_REPO_NAME'),
-                pullRequest: github.context.payload.pull_request,
-            });
-            break;
-        case "close":
-            pantheonDeploy.close({
-                machineToken: core.getInput('PANTHEON_MACHINE_TOKEN'),
-                pantheonRepoName: core.getInput('REMOTE_REPO_NAME'),
-                pullRequest: github.context.payload.pull_request,
-            });
-            break;
-    }
+    pantheonDeploy.init({
+        prState: core.getInput('PR_STATE'),
+        pantheonRepoURL: core.getInput('REMOTE_REPO_URL'),
+        pantheonRepoName: core.getInput('REMOTE_REPO_NAME'),
+        machineToken: core.getInput('PANTHEON_MACHINE_TOKEN'),
+        pullRequest: github.context.payload.pull_request,
+        strictBranchName: core.getInput('STRICT_BRANCH_NAMES') || "none",
+    });
 };
 
 run();
