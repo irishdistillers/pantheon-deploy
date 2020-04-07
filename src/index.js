@@ -24,6 +24,7 @@ const pantheonDeploy = (() => {
         pullRequest,
         strictBranchName
     }) => {
+        console.log('Running pantheon deploy init.');
         switch (prState) {
             case "open":
                 open(
@@ -50,6 +51,7 @@ const pantheonDeploy = (() => {
         machineToken,
         pullRequest
     }) => {
+        console.log('Pull request type is open.');
         checkBranch(pullRequest.head.ref, strictBranchName);
         gitBranch(pantheonRepoURL, pullRequest);
         setupTerminus(machineToken);
@@ -189,6 +191,7 @@ const validateInputs = (inputs) => {
 };
 
 const run = () => {
+    console.log('Passing parameters to init.');
     pantheonDeploy.init({
         pullRequestState: core.getInput('PR_STATE'),
         pantheonRepoURL: core.getInput('REMOTE_REPO_URL'),
