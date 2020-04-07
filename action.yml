@@ -7,13 +7,20 @@ inputs:
     required: true
   REMOTE_REPO_URL:
     description: "Remote GIT Repo URL"
-    required: true
   REMOTE_REPO_NAME:
     description: "Remote GIT Repo Name"
     required: true
+  PR_STATE:
+    description: "State of the PR that triggered the action (open/close)"
+    required: true
+  STRICT_BRANCH_NAMES:
+    description: "(optional) Set to `strict` if you want your branch names to only look like Jira tickets (ABC-1234)"
+    default: "none"
 outputs:
   multidev-url:
     description: "URL to access the created multidev"
+  close-state:
+    description: "How the multidev has been closed"
 runs:
   using: "node12"
   main: "dist/index.js"

@@ -1,5 +1,4 @@
-
-This GitHub Action deploys your current issue branch to a remote Pantheon repo, using NodeJS.
+This GitHub Action syncs your current issue branch to a remote Pantheon repo, using NodeJS.
 
 # Configuration
 
@@ -17,6 +16,14 @@ Remote GIT Repo URL
 
 Remote GIT Repo Name
 
+- `PR_STATE` [required]
+
+State of the PR that triggered the action
+
+- `STRICT_BRANCH_NAMES` [optional]
+
+Set to strict to enforce Jira ticket naming for branches (`none` by default)
+
 # Dependencies
 
 This Github actions required that you:
@@ -30,12 +37,30 @@ This Github actions required that you:
 ```
   - name: Deploy current branch to pantheon
     uses: irishdistillers/pantheon-deploy@master
-    env:
+    with:
+      PR_STATE: 'open'
       PANTHEON_MACHINE_TOKEN: ${{ secrets.PANTHEON_MACHINE_TOKEN }}
       REMOTE_REPO_URL: 'url'
+      REMOTE_REPO_NAME: 'name'
+      STRICT_BRANCH_NAMES: 'strict'
+```
+
+```
+  - name: Delete/merge corresponding multidev in pantheon
+    uses: irishdistillers/pantheon-deploy@master
+    with:
+      PR_STATE: 'close'
+      PANTHEON_MACHINE_TOKEN: ${{ secrets.PANTHEON_MACHINE_TOKEN }}
       REMOTE_REPO_NAME: 'name'
 ```
 
 ## Disclaimer
 
 Use at your own risk.
+
+
+## TODO
+
+- Use `env` instead of `with` in workflow
+- Send comments to PR directly from the action itself
+- npm builds ?
