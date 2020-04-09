@@ -2,25 +2,23 @@ name: "Pantheon deploy"
 description: "This GitHub Action deploys your current issue branch to a remote Pantheon repo."
 author: "irishdistillers"
 inputs:
-  PANTHEON_MACHINE_TOKEN:
-    description: "Pantheon Machine Token to be used in Terminus"
+  PULL_REQUEST_STATE:
+    description: "State of the PR that triggered the action (open/close/...)"
     required: true
-  REMOTE_REPO_URL:
-    description: "Remote GIT Repo URL"
-  REMOTE_REPO_NAME:
+  PANTHEON_SITE_ID:
     description: "Remote GIT Repo Name"
     required: true
-  PR_STATE:
-    description: "State of the PR that triggered the action (open/close)"
+  PANTHEON_REPO_URL:
+    description: "Remote GIT Repo URL"
     required: true
   STRICT_BRANCH_NAMES:
     description: "(optional) Set to `strict` if you want your branch names to only look like Jira tickets (ABC-1234)"
     default: "none"
+  
 outputs:
-  multidev-url:
-    description: "URL to access the created multidev"
-  close-state:
-    description: "How the multidev has been closed"
+  multidev:
+    description: "Info about the multidev"
+
 runs:
   using: "node12"
   main: "dist/index.js"

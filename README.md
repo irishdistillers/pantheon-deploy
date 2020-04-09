@@ -1,24 +1,18 @@
 This GitHub Action syncs your current issue branch to a remote Pantheon repo, using NodeJS.
 
-# Configuration
+# Parameters
 
-Pass configuration with `env` vars
+- `PANTHEON_REPO_URL` [required]
 
-- `PANTHEON_MACHINE_TOKEN` [required]
+Remote GIT Repo URL (in pantheon)
 
-Pantheon Machine Token to be used in Terminus
+- `PANTHEON_SITE_ID` [required]
 
-- `REMOTE_REPO_URL` [required]
+Pantheon site id (or site.env in terminus)
 
-Remote GIT Repo URL
+- `PULL_REQUEST_STATE` [required]
 
-- `REMOTE_REPO_NAME` [required]
-
-Remote GIT Repo Name
-
-- `PR_STATE` [required]
-
-State of the PR that triggered the action
+State of the pull request that triggered the action
 
 - `STRICT_BRANCH_NAMES` [optional]
 
@@ -38,10 +32,9 @@ This Github actions required that you:
   - name: Deploy current branch to pantheon
     uses: irishdistillers/pantheon-deploy@master
     with:
-      PR_STATE: 'open'
-      PANTHEON_MACHINE_TOKEN: ${{ secrets.PANTHEON_MACHINE_TOKEN }}
-      REMOTE_REPO_URL: 'url'
-      REMOTE_REPO_NAME: 'name'
+      PULL_REQUEST_STATE: 'open'
+      PANTHEON_REPO_URL: 'url'
+      PANTHEON_SITE_ID: 'name'
       STRICT_BRANCH_NAMES: 'strict'
 ```
 
@@ -49,18 +42,7 @@ This Github actions required that you:
   - name: Delete/merge corresponding multidev in pantheon
     uses: irishdistillers/pantheon-deploy@master
     with:
-      PR_STATE: 'close'
-      PANTHEON_MACHINE_TOKEN: ${{ secrets.PANTHEON_MACHINE_TOKEN }}
-      REMOTE_REPO_NAME: 'name'
+      PULL_REQUEST_STATE: 'close'
+      PANTHEON_REPO_URL: 'url'
+      PANTHEON_SITE_ID: 'name'
 ```
-
-## Disclaimer
-
-Use at your own risk.
-
-
-## TODO
-
-- Use `env` instead of `with` in workflow
-- Send comments to PR directly from the action itself
-- npm builds ?

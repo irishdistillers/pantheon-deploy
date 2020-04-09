@@ -5,200 +5,148 @@ const exec = require('@actions/exec');
 const github = require('@actions/github');
 const child_process = require('child_process');
 
-const {
-    REMOTE_REPO_URL,
-    REMOTE_REPO_NAME,
-    PANTHEON_MACHINE_TOKEN,
-    GITHUB_WORKSPACE,
-    HOME
-} = process.env;
-console.log('GITHUB_WORKSPACE', GITHUB_WORKSPACE);
+const successItems = ["🦾", "✅", "👍", "😎", "🤓", "😊", "🎉", "🔥", "👷", "🏄"]
+const errorItems = ["🙀", "⭕", "🥶", "😵", "💣", "🧨", " 🤷", "⛔", "❌", "🆘"]
 
-const pantheonDeploy = (() => {
+const pantheon = (() => {
 
     const init = ({
         prState,
-        pantheonRepoURL,
-        pantheonRepoName,
-        machineToken,
-        pullRequest,
+        prBranch,
+        siteId,
+        repoURL,
         strictBranchName
     }) => {
-        console.log('Running pantheon deploy init.');
+
+        customLog('Init', `Pull request type is ${prState}`);
+
         switch (prState) {
-            case "open":
-                open(
-                    pantheonRepoURL,
-                    pantheonRepoName,
-                    machineToken,
-                    pullRequest,
-                    strictBranchName
-                );
+            case "opened":
+            case "reopened":
+                hasTerminus();
+                isBranchNameValid(prBranch, strictBranchName);
+                syncBranch(repoURL, prBranch);
+                createMultiDev(siteId, prBranch);
                 break;
-            case "close":
-                close(
-                    machineToken,
-                    pantheonRepoName,
-                    pullRequest
-                );
+            case "merged":
+                hasTerminus();
+                mergeMultiDev(siteId, prBranch);
+                break;
+            case "closed":
+                hasTerminus();
+                deleteMultiDev(siteId, prBranch);
+                break;
+            default:
+                customLog('error', `️️️Unknown pull request state ${prState}`);
+                process.abort();
                 break;
         }
-    };
-    
-    const open = ({
-        pantheonRepoURL,
-        pantheonRepoName,
-        machineToken,
-        pullRequest
-    }) => {
-        console.log('Pull request type is open.');
-        checkBranch(pullRequest.head.ref, strictBranchName);
-        gitBranch(pantheonRepoURL, pullRequest);
-        setupTerminus(machineToken);
-        buildMultiDev(pantheonRepoName, pullRequest);
-    };
+    }
 
-    const close = ({
-        pantheonRepoName,
-        pullRequest,
-        machineToken
-    }) => {
+    const customLog = (outputName, string) => {
+        let output = JSON.stringify(string);
 
-        setupTerminus(machineToken);
-
-        if (pullRequest.merged == true) {
-            mergeMultiDev(pantheonRepoName, pullRequest);
-        } else if (pullRequest.merged == false) {
-            deleteMultiDev(pantheonRepoName, pullRequest);
-        }
-    };
-
-    const checkBranch = (prName, strictBranchName) => {
-        if (prName.length > 11) {
-            core.setFailed("Branch name is too long to create a multidev. Branch names need to be 11 characters or less.");
+        if ('error' == outputName) {
+            let randItem = errorItems[Math.floor(Math.random() * errorItems.length)]
+            core.setFailed(randItem + " " + output);
             process.abort();
-        } else if (strictBranchName == "strict" && !prName.match(/[A-z]*-[0-9]*-?[0-9]/)) {
-            core.setFailed("Branch name needs to be Jira friendly (ABC-1234)");
-            process.abort();
-        } else {
-            console.log("\n ✅ Branch name correct.");
         }
-    };
 
-    const gitBranch = (pantheonRepoURL, pullRequest) => {
+        let randItem = successItems[Math.floor(Math.random() * successItems.length)]
+        console.log(randItem + " " + outputName, output);
+    }
+
+    const syncBranch = (remoteUrl, branchName) => {
         try {
-
-            console.log("\n 👷 Github initial configuration:");
             child_process.execSync("git config core.sshCommand 'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'");
-            child_process.execSync('git remote add pantheon ' + pantheonRepoURL);
+            child_process.execSync(`git remote add pantheon ${remoteUrl}`);
 
-            console.log("\n Git Remote added:");
             child_process.execSync('git remote -v');
             child_process.execSync('git fetch --unshallow origin');
 
-            console.log("\n Checkout current branch:");
-            child_process.execSync('git checkout ' + pullRequest.head.ref);
-
-            console.log("\n Pushing branch to Pantheon:");
-            child_process.execSync('git push pantheon ' + pullRequest.head.ref + ':' + pullRequest.head.ref);
-            console.log("\n ✅ Branch pushed to Pantheon.");
-
+            child_process.execSync(`git checkout ${branchName}`);
+            child_process.execSync(`git push pantheon ${branchName}:${branchName}`);
         } catch (error) {
-            core.setFailed(error.message);
-            process.abort();
-        }
-    };
-
-    async function setupTerminus(machineToken) {
-        try {
-
-            await exec.exec('curl -O https://raw.githubusercontent.com/pantheon-systems/terminus-installer/master/builds/installer.phar');
-            await exec.exec('sudo php installer.phar install'); // Sudo is required in order to install bin/terminus.
-            await exec.exec('terminus', ['auth:login', `--machine-token=${ machineToken }`]);
-
-        } catch (error) {
-            core.setFailed(error.message);
+            customLog('error', error.message);
             process.abort();
         }
     }
 
-    async function mergeMultiDev(pantheonRepoName, pullRequest) {
+    const isBranchNameValid = (branchName, strictBranchName) => {
+        if (branchName.length > 11) {
+            customLog('error', `Branch name ${branchName} is too long to create a multidev. Branch names need to be 11 characters or less. 🗣️`);
+            process.abort();
+        } else if ("strict" === strictBranchName && !branchName.match(/[a-z]*[0-9]*?[0-9]/)) {
+            customLog('error', `Branch name ${branchName} needs to be Jira friendly (abc-1234)`);
+            process.abort();
+        } else {
+            customLog('check-branch', `Branch name ${branchName} is correct`);
+        }
+    }
+
+    async function hasTerminus () {
         try {
-
-            await exec.exec('terminus', ['multidev:merge-to-dev', pantheonRepoName, pullRequest.head.ref]);
-
-            sendToOutput('close-state', 'merged into dev');
-            console.log("\n ✅ Multidev merged.");
-
+            await exec.exec('terminus -V');
+            customLog('setup-terminus', 'Terminus is set and ready to go');
         } catch (error) {
-            core.setFailed(error.message);
+            customLog('error', 'Terminus is missing');
             process.abort();
         }
     }
 
-    async function deleteMultiDev(pantheonRepoName, pullRequest) {
+    async function mergeMultiDev(remoteName, branchName) {
         try {
+            await exec.exec(`terminus multidev:merge-to-dev ${remoteName}.${branchName} -y`);
 
-            await exec.exec('terminus', ['multidev:delete', pantheonRepoName, pullRequest.head.ref]);
-
-            sendToOutput('close-state', 'deleted');
-            console.log("\n ✅ Multidev deleted.");
-
+            customLog('merge-multidev', `${branchName} has been merged`);
+            core.setOutput('multidev', `${branchName} has been merged`);
         } catch (error) {
-            core.setFailed(error.message);
+            customLog('error', error.message);
             process.abort();
         }
     }
 
-    async function buildMultiDev(pantheonRepoName, pullRequest) {
+    async function deleteMultiDev(remoteName, branchName) {
         try {
+            await exec.exec(`terminus multidev:delete ${remoteName}.${branchName} -y`);
 
-            await exec.exec('terminus', ['multidev:create', pantheonRepoName, pullRequest.head.ref]);
-
-            let multidevUrl = child_process.execSync(`terminus env:view --print ${ pantheonRepoName }.${ pullRequest.head.ref }`);
-            sendToOutput('multidev-url', multidevUrl);
-            console.log('\n URL to access the multidev is : ' . multidevUrl);
-            console.log("\n ✅ Multidev created.");
-
+            customLog('delete-multidev', `${branchName} has been deleted`);
+            core.setOutput('multidev', `${branchName} has been deleted`);
         } catch (error) {
-            core.setFailed(error.message);
+            customLog('error', error.message);
             process.abort();
         }
     }
 
-    const sendToOutput = (outputName, string) => {
-        const output = JSON.stringify(string);
-        core.setOutput(outputName, output);
-    };
+    async function createMultiDev(remoteName, branchName) {
+        try {
+            await exec.exec(`terminus multidev:create ${remoteName} ${branchName}`);
+
+            let multidevUrl = child_process.execSync(`terminus env:view --print ${remoteName}.${branchName }`);
+
+            customLog('create-multidev', `${branchName} has been created`);
+            core.setOutput('multidev', `${multidevUrl} has been created`);
+        } catch (error) {
+            customLog('error', error.message);
+            process.abort();
+        }
+    }
 
     return {
         init
     }
 })();
 
-const validateInputs = (inputs) => {
-    const validInputs = inputs.filter(input => {
-        if (!input) {
-            console.error(`⚠️ ${input} is mandatory`);
-        }
-
-        return input;
-    });
-
-    if (validInputs.length !== inputs.length) {
-        process.abort();
-    }
-};
-
 const run = () => {
-    console.log('Passing parameters to init.');
-    pantheonDeploy.init({
-        pullRequestState: core.getInput('PR_STATE'),
-        pantheonRepoURL: core.getInput('REMOTE_REPO_URL'),
-        pantheonRepoName: core.getInput('REMOTE_REPO_NAME'),
-        machineToken: core.getInput('PANTHEON_MACHINE_TOKEN'),
-        pullRequest: github.context.payload.pull_request,
-        strictBranchName: core.getInput('STRICT_BRANCH_NAMES') || "none",
+    let payload = github.context.payload;
+    let current_branch = payload.pull_request.head.ref;
+
+    pantheon.init({
+        prState: core.getInput('PULL_REQUEST_STATE'),
+        prBranch: current_branch,
+        siteId: core.getInput('PANTHEON_SITE_ID'),
+        repoURL: core.getInput('PANTHEON_REPO_URL'),
+        strictBranchName: core.getInput('STRICT_BRANCH_NAMES')
     });
 };
 

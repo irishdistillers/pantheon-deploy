@@ -1357,13 +1357,21 @@ const windowsRelease = release => {
 
 	const ver = (version || [])[0];
 
-	// Server 2008, 2012 and 2016 versions are ambiguous with desktop versions and must be detected at runtime.
+	// Server 2008, 2012, 2016, and 2019 versions are ambiguous with desktop versions and must be detected at runtime.
 	// If `release` is omitted or we're on a Windows system, and the version number is an ambiguous version
 	// then use `wmic` to get the OS caption: https://msdn.microsoft.com/en-us/library/aa394531(v=vs.85).aspx
-	// If the resulting caption contains the year 2008, 2012 or 2016, it is a server version, so return a server OS name.
+	// If `wmic` is obsoloete (later versions of Windows 10), use PowerShell instead.
+	// If the resulting caption contains the year 2008, 2012, 2016 or 2019, it is a server version, so return a server OS name.
 	if ((!release || release === os.release()) && ['6.1', '6.2', '6.3', '10.0'].includes(ver)) {
-		const stdout = execa.sync('wmic', ['os', 'get', 'Caption']).stdout || '';
-		const year = (stdout.match(/2008|2012|2016/) || [])[0];
+		let stdout;
+		try {
+			stdout = execa.sync('powershell', ['(Get-CimInstance -ClassName Win32_OperatingSystem).caption']).stdout || '';
+		} catch (_) {
+			stdout = execa.sync('wmic', ['os', 'get', 'Caption']).stdout || '';
+		}
+
+		const year = (stdout.match(/2008|2012|2016|2019/) || [])[0];
+
 		if (year) {
 			return `Server ${year}`;
 		}
@@ -2921,7 +2929,7 @@ exports.getUserAgent = getUserAgent;
 /***/ 215:
 /***/ (function(module) {
 
-module.exports = {"_args":[["@octokit/rest@16.43.1","/Users/johannbiteghe/Localdev/actions/pantheon-deploy"]],"_from":"@octokit/rest@16.43.1","_id":"@octokit/rest@16.43.1","_inBundle":false,"_integrity":"sha512-gfFKwRT/wFxq5qlNjnW2dh+qh74XgTQ2B179UX5K1HYCluioWj8Ndbgqw2PVqa1NnVJkGHp2ovMpVn/DImlmkw==","_location":"/@octokit/rest","_phantomChildren":{"@octokit/types":"2.5.1","deprecation":"2.3.1","once":"1.4.0"},"_requested":{"type":"version","registry":true,"raw":"@octokit/rest@16.43.1","name":"@octokit/rest","escapedName":"@octokit%2frest","scope":"@octokit","rawSpec":"16.43.1","saveSpec":null,"fetchSpec":"16.43.1"},"_requiredBy":["/@actions/github"],"_resolved":"https://registry.npmjs.org/@octokit/rest/-/rest-16.43.1.tgz","_spec":"16.43.1","_where":"/Users/johannbiteghe/Localdev/actions/pantheon-deploy","author":{"name":"Gregor Martynus","url":"https://github.com/gr2m"},"bugs":{"url":"https://github.com/octokit/rest.js/issues"},"bundlesize":[{"path":"./dist/octokit-rest.min.js.gz","maxSize":"33 kB"}],"contributors":[{"name":"Mike de Boer","email":"info@mikedeboer.nl"},{"name":"Fabian Jakobs","email":"fabian@c9.io"},{"name":"Joe Gallo","email":"joe@brassafrax.com"},{"name":"Gregor Martynus","url":"https://github.com/gr2m"}],"dependencies":{"@octokit/auth-token":"^2.4.0","@octokit/plugin-paginate-rest":"^1.1.1","@octokit/plugin-request-log":"^1.0.0","@octokit/plugin-rest-endpoint-methods":"2.4.0","@octokit/request":"^5.2.0","@octokit/request-error":"^1.0.2","atob-lite":"^2.0.0","before-after-hook":"^2.0.0","btoa-lite":"^1.0.0","deprecation":"^2.0.0","lodash.get":"^4.4.2","lodash.set":"^4.3.2","lodash.uniq":"^4.5.0","octokit-pagination-methods":"^1.1.0","once":"^1.4.0","universal-user-agent":"^4.0.0"},"description":"GitHub REST API client for Node.js","devDependencies":{"@gimenete/type-writer":"^0.1.3","@octokit/auth":"^1.1.1","@octokit/fixtures-server":"^5.0.6","@octokit/graphql":"^4.2.0","@types/node":"^13.1.0","bundlesize":"^0.18.0","chai":"^4.1.2","compression-webpack-plugin":"^3.1.0","cypress":"^3.0.0","glob":"^7.1.2","http-proxy-agent":"^4.0.0","lodash.camelcase":"^4.3.0","lodash.merge":"^4.6.1","lodash.upperfirst":"^4.3.1","lolex":"^5.1.2","mkdirp":"^1.0.0","mocha":"^7.0.1","mustache":"^4.0.0","nock":"^11.3.3","npm-run-all":"^4.1.2","nyc":"^15.0.0","prettier":"^1.14.2","proxy":"^1.0.0","semantic-release":"^17.0.0","sinon":"^8.0.0","sinon-chai":"^3.0.0","sort-keys":"^4.0.0","string-to-arraybuffer":"^1.0.0","string-to-jsdoc-comment":"^1.0.0","typescript":"^3.3.1","webpack":"^4.0.0","webpack-bundle-analyzer":"^3.0.0","webpack-cli":"^3.0.0"},"files":["index.js","index.d.ts","lib","plugins"],"homepage":"https://github.com/octokit/rest.js#readme","keywords":["octokit","github","rest","api-client"],"license":"MIT","name":"@octokit/rest","nyc":{"ignore":["test"]},"publishConfig":{"access":"public"},"release":{"publish":["@semantic-release/npm",{"path":"@semantic-release/github","assets":["dist/*","!dist/*.map.gz"]}]},"repository":{"type":"git","url":"git+https://github.com/octokit/rest.js.git"},"scripts":{"build":"npm-run-all build:*","build:browser":"npm-run-all build:browser:*","build:browser:development":"webpack --mode development --entry . --output-library=Octokit --output=./dist/octokit-rest.js --profile --json > dist/bundle-stats.json","build:browser:production":"webpack --mode production --entry . --plugin=compression-webpack-plugin --output-library=Octokit --output-path=./dist --output-filename=octokit-rest.min.js --devtool source-map","build:ts":"npm run -s update-endpoints:typescript","coverage":"nyc report --reporter=html && open coverage/index.html","generate-bundle-report":"webpack-bundle-analyzer dist/bundle-stats.json --mode=static --no-open --report dist/bundle-report.html","lint":"prettier --check '{lib,plugins,scripts,test}/**/*.{js,json,ts}' 'docs/*.{js,json}' 'docs/src/**/*' index.js README.md package.json","lint:fix":"prettier --write '{lib,plugins,scripts,test}/**/*.{js,json,ts}' 'docs/*.{js,json}' 'docs/src/**/*' index.js README.md package.json","postvalidate:ts":"tsc --noEmit --target es6 test/typescript-validate.ts","prebuild:browser":"mkdirp dist/","pretest":"npm run -s lint","prevalidate:ts":"npm run -s build:ts","start-fixtures-server":"octokit-fixtures-server","test":"nyc mocha test/mocha-node-setup.js \"test/*/**/*-test.js\"","test:browser":"cypress run --browser chrome","update-endpoints":"npm-run-all update-endpoints:*","update-endpoints:fetch-json":"node scripts/update-endpoints/fetch-json","update-endpoints:typescript":"node scripts/update-endpoints/typescript","validate:ts":"tsc --target es6 --noImplicitAny index.d.ts"},"types":"index.d.ts","version":"16.43.1"};
+module.exports = {"_args":[["@octokit/rest@16.43.1","/Volumes/shakushaku/Projects/wordpress-themes/pantheon-deploy"]],"_from":"@octokit/rest@16.43.1","_id":"@octokit/rest@16.43.1","_inBundle":false,"_integrity":"sha512-gfFKwRT/wFxq5qlNjnW2dh+qh74XgTQ2B179UX5K1HYCluioWj8Ndbgqw2PVqa1NnVJkGHp2ovMpVn/DImlmkw==","_location":"/@octokit/rest","_phantomChildren":{"@octokit/types":"2.5.1","deprecation":"2.3.1","once":"1.4.0"},"_requested":{"type":"version","registry":true,"raw":"@octokit/rest@16.43.1","name":"@octokit/rest","escapedName":"@octokit%2frest","scope":"@octokit","rawSpec":"16.43.1","saveSpec":null,"fetchSpec":"16.43.1"},"_requiredBy":["/@actions/github"],"_resolved":"https://registry.npmjs.org/@octokit/rest/-/rest-16.43.1.tgz","_spec":"16.43.1","_where":"/Volumes/shakushaku/Projects/wordpress-themes/pantheon-deploy","author":{"name":"Gregor Martynus","url":"https://github.com/gr2m"},"bugs":{"url":"https://github.com/octokit/rest.js/issues"},"bundlesize":[{"path":"./dist/octokit-rest.min.js.gz","maxSize":"33 kB"}],"contributors":[{"name":"Mike de Boer","email":"info@mikedeboer.nl"},{"name":"Fabian Jakobs","email":"fabian@c9.io"},{"name":"Joe Gallo","email":"joe@brassafrax.com"},{"name":"Gregor Martynus","url":"https://github.com/gr2m"}],"dependencies":{"@octokit/auth-token":"^2.4.0","@octokit/plugin-paginate-rest":"^1.1.1","@octokit/plugin-request-log":"^1.0.0","@octokit/plugin-rest-endpoint-methods":"2.4.0","@octokit/request":"^5.2.0","@octokit/request-error":"^1.0.2","atob-lite":"^2.0.0","before-after-hook":"^2.0.0","btoa-lite":"^1.0.0","deprecation":"^2.0.0","lodash.get":"^4.4.2","lodash.set":"^4.3.2","lodash.uniq":"^4.5.0","octokit-pagination-methods":"^1.1.0","once":"^1.4.0","universal-user-agent":"^4.0.0"},"description":"GitHub REST API client for Node.js","devDependencies":{"@gimenete/type-writer":"^0.1.3","@octokit/auth":"^1.1.1","@octokit/fixtures-server":"^5.0.6","@octokit/graphql":"^4.2.0","@types/node":"^13.1.0","bundlesize":"^0.18.0","chai":"^4.1.2","compression-webpack-plugin":"^3.1.0","cypress":"^3.0.0","glob":"^7.1.2","http-proxy-agent":"^4.0.0","lodash.camelcase":"^4.3.0","lodash.merge":"^4.6.1","lodash.upperfirst":"^4.3.1","lolex":"^5.1.2","mkdirp":"^1.0.0","mocha":"^7.0.1","mustache":"^4.0.0","nock":"^11.3.3","npm-run-all":"^4.1.2","nyc":"^15.0.0","prettier":"^1.14.2","proxy":"^1.0.0","semantic-release":"^17.0.0","sinon":"^8.0.0","sinon-chai":"^3.0.0","sort-keys":"^4.0.0","string-to-arraybuffer":"^1.0.0","string-to-jsdoc-comment":"^1.0.0","typescript":"^3.3.1","webpack":"^4.0.0","webpack-bundle-analyzer":"^3.0.0","webpack-cli":"^3.0.0"},"files":["index.js","index.d.ts","lib","plugins"],"homepage":"https://github.com/octokit/rest.js#readme","keywords":["octokit","github","rest","api-client"],"license":"MIT","name":"@octokit/rest","nyc":{"ignore":["test"]},"publishConfig":{"access":"public"},"release":{"publish":["@semantic-release/npm",{"path":"@semantic-release/github","assets":["dist/*","!dist/*.map.gz"]}]},"repository":{"type":"git","url":"git+https://github.com/octokit/rest.js.git"},"scripts":{"build":"npm-run-all build:*","build:browser":"npm-run-all build:browser:*","build:browser:development":"webpack --mode development --entry . --output-library=Octokit --output=./dist/octokit-rest.js --profile --json > dist/bundle-stats.json","build:browser:production":"webpack --mode production --entry . --plugin=compression-webpack-plugin --output-library=Octokit --output-path=./dist --output-filename=octokit-rest.min.js --devtool source-map","build:ts":"npm run -s update-endpoints:typescript","coverage":"nyc report --reporter=html && open coverage/index.html","generate-bundle-report":"webpack-bundle-analyzer dist/bundle-stats.json --mode=static --no-open --report dist/bundle-report.html","lint":"prettier --check '{lib,plugins,scripts,test}/**/*.{js,json,ts}' 'docs/*.{js,json}' 'docs/src/**/*' index.js README.md package.json","lint:fix":"prettier --write '{lib,plugins,scripts,test}/**/*.{js,json,ts}' 'docs/*.{js,json}' 'docs/src/**/*' index.js README.md package.json","postvalidate:ts":"tsc --noEmit --target es6 test/typescript-validate.ts","prebuild:browser":"mkdirp dist/","pretest":"npm run -s lint","prevalidate:ts":"npm run -s build:ts","start-fixtures-server":"octokit-fixtures-server","test":"nyc mocha test/mocha-node-setup.js \"test/*/**/*-test.js\"","test:browser":"cypress run --browser chrome","update-endpoints":"npm-run-all update-endpoints:*","update-endpoints:fetch-json":"node scripts/update-endpoints/fetch-json","update-endpoints:typescript":"node scripts/update-endpoints/typescript","validate:ts":"tsc --target es6 --noImplicitAny index.d.ts"},"types":"index.d.ts","version":"16.43.1"};
 
 /***/ }),
 
@@ -8486,6 +8494,7 @@ var HttpCodes;
     HttpCodes[HttpCodes["RequestTimeout"] = 408] = "RequestTimeout";
     HttpCodes[HttpCodes["Conflict"] = 409] = "Conflict";
     HttpCodes[HttpCodes["Gone"] = 410] = "Gone";
+    HttpCodes[HttpCodes["TooManyRequests"] = 429] = "TooManyRequests";
     HttpCodes[HttpCodes["InternalServerError"] = 500] = "InternalServerError";
     HttpCodes[HttpCodes["NotImplemented"] = 501] = "NotImplemented";
     HttpCodes[HttpCodes["BadGateway"] = 502] = "BadGateway";
@@ -9625,200 +9634,157 @@ const exec = __webpack_require__(986);
 const github = __webpack_require__(469);
 const child_process = __webpack_require__(129);
 
+const successItems = ["🦾", "✅", "👍", "😎", "🤓", "😊", "🎉", "🔥", "👷", "🏄"]
+const errorItems = ["🙀", "⭕", "🥶", "😵", "💣", "🧨", " 🤷", "⛔", "❌", "🆘"]
+
 const {
-    REMOTE_REPO_URL,
-    REMOTE_REPO_NAME,
-    PANTHEON_MACHINE_TOKEN,
     GITHUB_WORKSPACE,
     HOME
 } = process.env;
 console.log('GITHUB_WORKSPACE', GITHUB_WORKSPACE);
 
-const pantheonDeploy = (() => {
+const pantheon = (() => {
 
     const init = ({
         prState,
-        pantheonRepoURL,
-        pantheonRepoName,
-        machineToken,
-        pullRequest,
+        prBranch,
+        siteId,
+        repoURL,
         strictBranchName
     }) => {
-        console.log('Running pantheon deploy init.');
+
+        customLog('Init', `Pull request type is ${prState}`);
+
         switch (prState) {
-            case "open":
-                open(
-                    pantheonRepoURL,
-                    pantheonRepoName,
-                    machineToken,
-                    pullRequest,
-                    strictBranchName
-                );
+            case "opened":
+            case "reopened":
+                hasTerminus();
+                isBranchNameValid(prBranch, strictBranchName);
+                syncBranch(repoURL, prBranch);
+                createMultiDev(siteId, prBranch);
                 break;
-            case "close":
-                close(
-                    machineToken,
-                    pantheonRepoName,
-                    pullRequest
-                );
+            case "merged":
+                hasTerminus();
+                mergeMultiDev(siteId, prBranch);
+                break;
+            case "closed":
+                hasTerminus();
+                deleteMultiDev(siteId, prBranch);
+                break;
+            default:
+                customLog('error', `️️️Unknown pull request state ${prState}`);
+                process.abort();
                 break;
         }
-    };
-    
-    const open = ({
-        pantheonRepoURL,
-        pantheonRepoName,
-        machineToken,
-        pullRequest
-    }) => {
-        console.log('Pull request type is open.');
-        checkBranch(pullRequest.head.ref, strictBranchName);
-        gitBranch(pantheonRepoURL, pullRequest);
-        setupTerminus(machineToken);
-        buildMultiDev(pantheonRepoName, pullRequest);
-    };
+    }
 
-    const close = ({
-        pantheonRepoName,
-        pullRequest,
-        machineToken
-    }) => {
+    const customLog = (outputName, string) => {
+        let output = JSON.stringify(string);
 
-        setupTerminus(machineToken);
-
-        if (pullRequest.merged == true) {
-            mergeMultiDev(pantheonRepoName, pullRequest);
-        } else if (pullRequest.merged == false) {
-            deleteMultiDev(pantheonRepoName, pullRequest);
-        }
-    };
-
-    const checkBranch = (prName, strictBranchName) => {
-        if (prName.length > 11) {
-            core.setFailed("Branch name is too long to create a multidev. Branch names need to be 11 characters or less.");
+        if ('error' == outputName) {
+            let randItem = errorItems[Math.floor(Math.random() * errorItems.length)]
+            core.setFailed(randItem + " " + output);
             process.abort();
-        } else if (strictBranchName == "strict" && !prName.match(/[A-z]*-[0-9]*-?[0-9]/)) {
-            core.setFailed("Branch name needs to be Jira friendly (ABC-1234)");
-            process.abort();
-        } else {
-            console.log("\n ✅ Branch name correct.");
         }
-    };
 
-    const gitBranch = (pantheonRepoURL, pullRequest) => {
+        let randItem = successItems[Math.floor(Math.random() * successItems.length)]
+        console.log(randItem + " " + outputName, output);
+    }
+
+    const syncBranch = (remoteUrl, branchName) => {
         try {
+            // console.log(`what the f*ck is wrong here ${remoteUrl}`);
+            console.log("jfjjfjf " + branchName);
 
-            console.log("\n 👷 Github initial configuration:");
             child_process.execSync("git config core.sshCommand 'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'");
-            child_process.execSync('git remote add pantheon ' + pantheonRepoURL);
+            child_process.execSync(`git remote add pantheon ${remoteUrl}`);
 
-            console.log("\n Git Remote added:");
             child_process.execSync('git remote -v');
             child_process.execSync('git fetch --unshallow origin');
 
-            console.log("\n Checkout current branch:");
-            child_process.execSync('git checkout ' + pullRequest.head.ref);
-
-            console.log("\n Pushing branch to Pantheon:");
-            child_process.execSync('git push pantheon ' + pullRequest.head.ref + ':' + pullRequest.head.ref);
-            console.log("\n ✅ Branch pushed to Pantheon.");
-
+            child_process.execSync(`git checkout ${branchName}`);
+            child_process.execSync(`git push pantheon ${branchName}:${branchName}`);
         } catch (error) {
-            core.setFailed(error.message);
-            process.abort();
-        }
-    };
-
-    async function setupTerminus(machineToken) {
-        try {
-
-            await exec.exec('curl -O https://raw.githubusercontent.com/pantheon-systems/terminus-installer/master/builds/installer.phar');
-            await exec.exec('sudo php installer.phar install'); // Sudo is required in order to install bin/terminus.
-            await exec.exec('terminus', ['auth:login', `--machine-token=${ machineToken }`]);
-
-        } catch (error) {
-            core.setFailed(error.message);
+            customLog('error', error.message);
             process.abort();
         }
     }
 
-    async function mergeMultiDev(pantheonRepoName, pullRequest) {
+    const isBranchNameValid = (branchName, strictBranchName) => {
+        if (branchName.length > 11) {
+            customLog('error', `Branch name ${branchName} is too long to create a multidev. Branch names need to be 11 characters or less. 🗣️`);
+            process.abort();
+        } else if ("strict" === strictBranchName && !branchName.match(/[a-z]*[0-9]*?[0-9]/)) {
+            customLog('error', `Branch name ${branchName} needs to be Jira friendly (abc-1234)`);
+            process.abort();
+        } else {
+            customLog('check-branch', `Branch name ${branchName} is correct`);
+        }
+    }
+
+    async function hasTerminus () {
         try {
-
-            await exec.exec('terminus', ['multidev:merge-to-dev', pantheonRepoName, pullRequest.head.ref]);
-
-            sendToOutput('close-state', 'merged into dev');
-            console.log("\n ✅ Multidev merged.");
-
+            await exec.exec('terminus -V');
+            customLog('setup-terminus', 'Terminus is set and ready to go');
         } catch (error) {
-            core.setFailed(error.message);
+            customLog('error', 'Terminus is missing');
             process.abort();
         }
     }
 
-    async function deleteMultiDev(pantheonRepoName, pullRequest) {
+    async function mergeMultiDev(remoteName, branchName) {
         try {
+            await exec.exec(`terminus multidev:merge-to-dev ${remoteName}.${branchName} -y`);
 
-            await exec.exec('terminus', ['multidev:delete', pantheonRepoName, pullRequest.head.ref]);
-
-            sendToOutput('close-state', 'deleted');
-            console.log("\n ✅ Multidev deleted.");
-
+            customLog('merge-multidev', `${branchName} has been merged`);
+            core.setOutput('multidev', `${branchName} has been merged`);
         } catch (error) {
-            core.setFailed(error.message);
+            customLog('error', error.message);
             process.abort();
         }
     }
 
-    async function buildMultiDev(pantheonRepoName, pullRequest) {
+    async function deleteMultiDev(remoteName, branchName) {
         try {
+            await exec.exec(`terminus multidev:delete ${remoteName}.${branchName} -y`);
 
-            await exec.exec('terminus', ['multidev:create', pantheonRepoName, pullRequest.head.ref]);
-
-            let multidevUrl = child_process.execSync(`terminus env:view --print ${ pantheonRepoName }.${ pullRequest.head.ref }`);
-            sendToOutput('multidev-url', multidevUrl);
-            console.log('\n URL to access the multidev is : ' . multidevUrl);
-            console.log("\n ✅ Multidev created.");
-
+            customLog('delete-multidev', `${branchName} has been deleted`);
+            core.setOutput('multidev', `${branchName} has been deleted`);
         } catch (error) {
-            core.setFailed(error.message);
+            customLog('error', error.message);
             process.abort();
         }
     }
 
-    const sendToOutput = (outputName, string) => {
-        const output = JSON.stringify(string);
-        core.setOutput(outputName, output);
-    };
+    async function createMultiDev(remoteName, branchName) {
+        try {
+            await exec.exec(`terminus multidev:create ${remoteName} ${branchName}`);
+
+            let multidevUrl = child_process.execSync(`terminus env:view --print ${remoteName}.${branchName }`);
+
+            customLog('create-multidev', `${branchName} has been created`);
+            core.setOutput('multidev', `${multidevUrl} has been created`);
+        } catch (error) {
+            customLog('error', error.message);
+            process.abort();
+        }
+    }
 
     return {
         init
     }
 })();
 
-const validateInputs = (inputs) => {
-    const validInputs = inputs.filter(input => {
-        if (!input) {
-            console.error(`⚠️ ${input} is mandatory`);
-        }
-
-        return input;
-    });
-
-    if (validInputs.length !== inputs.length) {
-        process.abort();
-    }
-};
-
 const run = () => {
-    console.log('Passing parameters to init.');
-    pantheonDeploy.init({
-        pullRequestState: core.getInput('PR_STATE'),
-        pantheonRepoURL: core.getInput('REMOTE_REPO_URL'),
-        pantheonRepoName: core.getInput('REMOTE_REPO_NAME'),
-        machineToken: core.getInput('PANTHEON_MACHINE_TOKEN'),
-        pullRequest: github.context.payload.pull_request,
-        strictBranchName: core.getInput('STRICT_BRANCH_NAMES') || "none",
+    let payload = github.context.payload;
+    let current_branch = payload.pull_request.head.ref;
+
+    pantheon.init({
+        prState: core.getInput('PULL_REQUEST_STATE'),
+        prBranch: current_branch,
+        siteId: core.getInput('PANTHEON_SITE_ID'),
+        repoURL: core.getInput('PANTHEON_REPO_URL'),
+        strictBranchName: core.getInput('STRICT_BRANCH_NAMES')
     });
 };
 
