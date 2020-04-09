@@ -2,19 +2,22 @@ name: "Pantheon deploy"
 description: "This GitHub Action deploys your current issue branch to a remote Pantheon repo."
 author: "irishdistillers"
 inputs:
-  PULL_REQUEST_STATE:
-    description: "State of the PR that triggered the action (open/close/...)"
+  ACTION:
+    description: "action to run: create-multidev | delete-multidev | merge-to-dev"
+    required: true
+  BRANCH_NAME:
+    description: "the branch you want to send to Pantheon"
     required: true
   PANTHEON_SITE_ID:
-    description: "Remote GIT Repo Name"
+    description: "Pantheon site ID e.g: domain"
     required: true
   PANTHEON_REPO_URL:
-    description: "Remote GIT Repo URL"
+    description: "Pantheon GIT Repo URL"
     required: true
-  STRICT_BRANCH_NAMES:
+  STRICT_BRANCH_NAME:
     description: "(optional) Set to `strict` if you want your branch names to only look like Jira tickets (ABC-1234)"
     default: "none"
-  
+
 outputs:
   multidev:
     description: "Info about the multidev"

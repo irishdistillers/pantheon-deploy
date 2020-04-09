@@ -2,61 +2,48 @@
 
 const core = require('@actions/core');
 const exec = require('@actions/exec');
-const github = require('@actions/github');
 const child_process = require('child_process');
 
 const successItems = ["🦾", "✅", "👍", "😎", "🤓", "😊", "🎉", "🔥", "👷", "🏄"]
 const errorItems = ["🙀", "⭕", "🥶", "😵", "💣", "🧨", " 🤷", "⛔", "❌", "🆘"]
 
+const reservedBranchNames = ["settings", "master", "team", "support", "debug", "multidev", "files", "tags", "billing"]
+
 const pantheon = (() => {
 
     const init = ({
-        prState,
-        prBranch,
+        action,
+        branchName,
         siteId,
         repoURL,
         strictBranchName
     }) => {
-
-        customLog('Init', `Pull request type is ${prState}`);
-
-        switch (prState) {
-            case "opened":
-            case "reopened":
+        switch (action) {
+            case "create-multidev":
                 hasTerminus();
-                isBranchNameValid(prBranch, strictBranchName);
-                syncBranch(repoURL, prBranch);
-                createMultiDev(siteId, prBranch);
+                isBranchNameValid(branchName, strictBranchName);
+                branchPush(repoURL, branchName);
+                createMultiDev(siteId, branchName);
                 break;
-            case "merged":
+            case "merge-to-dev":
                 hasTerminus();
-                mergeMultiDev(siteId, prBranch);
+                isBranchNameValid(branchName, strictBranchName);
+                branchPush(repoURL, branchName);
+                mergeToDev(siteId, branchName);
                 break;
-            case "closed":
+            case "delete-multidev":
                 hasTerminus();
-                deleteMultiDev(siteId, prBranch);
+                deleteMultiDev(siteId, branchName);
+                branchDestroy(repoURL, branchName);
                 break;
             default:
-                customLog('error', `️️️Unknown pull request state ${prState}`);
+                customLog('error', `️️️Unknown action: ${action}`);
                 process.abort();
                 break;
         }
     }
 
-    const customLog = (outputName, string) => {
-        let output = JSON.stringify(string);
-
-        if ('error' == outputName) {
-            let randItem = errorItems[Math.floor(Math.random() * errorItems.length)]
-            core.setFailed(randItem + " " + output);
-            process.abort();
-        }
-
-        let randItem = successItems[Math.floor(Math.random() * successItems.length)]
-        console.log(randItem + " " + outputName, output);
-    }
-
-    const syncBranch = (remoteUrl, branchName) => {
+    const branchPush = (remoteUrl, branchName) => {
         try {
             child_process.execSync("git config core.sshCommand 'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'");
             child_process.execSync(`git remote add pantheon ${remoteUrl}`);
@@ -72,6 +59,17 @@ const pantheon = (() => {
         }
     }
 
+    const branchDestroy = (remoteUrl, branchName) => {
+        try {
+            child_process.execSync("git config core.sshCommand 'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'");
+            child_process.execSync(`git remote add pantheon ${remoteUrl}`);
+            child_process.execSync(`git push pantheon :${branchName}`);
+        } catch (error) {
+            customLog('error', error.message);
+            process.abort();
+        }
+    }
+
     const isBranchNameValid = (branchName, strictBranchName) => {
         if (branchName.length > 11) {
             customLog('error', `Branch name ${branchName} is too long to create a multidev. Branch names need to be 11 characters or less. 🗣️`);
@@ -79,12 +77,28 @@ const pantheon = (() => {
         } else if ("strict" === strictBranchName && !branchName.match(/[a-z]*[0-9]*?[0-9]/)) {
             customLog('error', `Branch name ${branchName} needs to be Jira friendly (abc-1234)`);
             process.abort();
-        } else {
-            customLog('check-branch', `Branch name ${branchName} is correct`);
+        } else if (reservedBranchNames.includes(branchName)) {
+            customLog('error', `Branch name "${branchName}" is a reserved name`);
+            process.abort();
         }
+
+        customLog('check-branch', `Branch name ${branchName} is correct`);
     }
 
-    async function hasTerminus () {
+    customLog = (outputName, string) => {
+        let output = JSON.stringify(string);
+
+        if ('error' == outputName) {
+            let randItem = errorItems[Math.floor(Math.random() * errorItems.length)]
+            core.setFailed(randItem + " " + output);
+            process.abort();
+        }
+
+        let randItem = successItems[Math.floor(Math.random() * successItems.length)]
+        console.log(randItem + " " + outputName, output);
+    }
+
+    async function hasTerminus() {
         try {
             await exec.exec('terminus -V');
             customLog('setup-terminus', 'Terminus is set and ready to go');
@@ -94,7 +108,7 @@ const pantheon = (() => {
         }
     }
 
-    async function mergeMultiDev(remoteName, branchName) {
+    async function mergeToDev(remoteName, branchName) {
         try {
             await exec.exec(`terminus multidev:merge-to-dev ${remoteName}.${branchName} -y`);
 
@@ -138,15 +152,12 @@ const pantheon = (() => {
 })();
 
 const run = () => {
-    let payload = github.context.payload;
-    let current_branch = payload.pull_request.head.ref;
-
     pantheon.init({
-        prState: core.getInput('PULL_REQUEST_STATE'),
-        prBranch: current_branch,
+        action: core.getInput('ACTION'),
+        branchName: core.getInput('BRANCH_NAME'),
         siteId: core.getInput('PANTHEON_SITE_ID'),
         repoURL: core.getInput('PANTHEON_REPO_URL'),
-        strictBranchName: core.getInput('STRICT_BRANCH_NAMES')
+        strictBranchName: core.getInput('STRICT_BRANCH_NAME')
     });
 };
 

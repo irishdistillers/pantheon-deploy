@@ -8,13 +8,17 @@ Remote GIT Repo URL (in pantheon)
 
 - `PANTHEON_SITE_ID` [required]
 
-Pantheon site id (or site.env in terminus)
+Pantheon site id (or site.env in terminus e.g: domain)
 
-- `PULL_REQUEST_STATE` [required]
+- `ACTION` [required]
 
-State of the pull request that triggered the action
+Action to run: create-multidev | delete-multidev | merge-to-dev
 
-- `STRICT_BRANCH_NAMES` [optional]
+- `BRANCH_NAME` [required]
+  
+The branch you want to send to Pantheon
+
+- `STRICT_BRANCH_NAME` [optional]
 
 Set to strict to enforce Jira ticket naming for branches (`none` by default)
 
@@ -29,12 +33,13 @@ This Github actions required that you:
 # Usage
 
 ```
-  - name: Deploy current branch to pantheon
+  - name: Create current branch to pantheon
     uses: irishdistillers/pantheon-deploy@master
     with:
-      PULL_REQUEST_STATE: 'open'
+      ACTION: 'create-multidev'
       PANTHEON_REPO_URL: 'url'
       PANTHEON_SITE_ID: 'name'
+      BRANCH_NAME: 'some-1'
       STRICT_BRANCH_NAMES: 'strict'
 ```
 
@@ -42,7 +47,8 @@ This Github actions required that you:
   - name: Delete/merge corresponding multidev in pantheon
     uses: irishdistillers/pantheon-deploy@master
     with:
-      PULL_REQUEST_STATE: 'close'
+      ACTION: 'delete-multidev'
+      BRANCH_NAME: 'some-1'
       PANTHEON_REPO_URL: 'url'
       PANTHEON_SITE_ID: 'name'
 ```
