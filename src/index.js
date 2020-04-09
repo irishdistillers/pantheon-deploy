@@ -34,7 +34,6 @@ const pantheon = (() => {
             case "delete-multidev":
                 hasTerminus();
                 deleteMultiDev(siteId, branchName);
-                branchDestroy(repoURL, branchName);
                 break;
             default:
                 customLog('error', `️️️Unknown action: ${action}`);
@@ -53,17 +52,6 @@ const pantheon = (() => {
 
             child_process.execSync(`git checkout ${branchName}`);
             child_process.execSync(`git push pantheon ${branchName}:${branchName}`);
-        } catch (error) {
-            customLog('error', error.message);
-            process.abort();
-        }
-    }
-
-    const branchDestroy = (remoteUrl, branchName) => {
-        try {
-            child_process.execSync("git config core.sshCommand 'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'");
-            child_process.execSync(`git remote add pantheon ${remoteUrl}`);
-            child_process.execSync(`git push pantheon :${branchName}`);
         } catch (error) {
             customLog('error', error.message);
             process.abort();
