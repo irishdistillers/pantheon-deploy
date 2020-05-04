@@ -72,7 +72,7 @@ const pantheon = (() => {
         if (branchName.length > 11) {
             customLog('error', `Branch name ${branchName} is too long to create a multidev. Branch names need to be 11 characters or less. 🗣️`);
             process.abort();
-        } else if ("strict" === strictBranchName && !branchName.match(/[a-z]*[0-9]*?[0-9]/)) {
+        } else if ("strict" === strictBranchName && !branchName.match(/[A-Z]*[0-9]*?[0-9]/)) {
             customLog('error', `Branch name ${branchName} needs to be Jira friendly (abc-1234)`);
             process.abort();
         } else if (reservedBranchNames.includes(branchName)) {
@@ -84,7 +84,7 @@ const pantheon = (() => {
     }
 
     customLog = (outputName, string) => {
-        let output = JSON.stringify(string);
+        const output = JSON.stringify(string);
 
         if ('error' == outputName) {
             let randItem = errorItems[Math.floor(Math.random() * errorItems.length)]
@@ -92,7 +92,7 @@ const pantheon = (() => {
             process.abort();
         }
 
-        let randItem = successItems[Math.floor(Math.random() * successItems.length)]
+        const randItem = successItems[Math.floor(Math.random() * successItems.length)]
         console.log(randItem + " " + outputName, output);
     }
 
@@ -106,9 +106,14 @@ const pantheon = (() => {
         }
     }
 
+    async function sanitizeBranchName(branchName) {
+        return branchName.toLowerCase();
+    }
+
     async function deleteMultiDev(remoteName, branchName) {
         try {
-            await exec.exec(`terminus multidev:delete ${remoteName}.${branchName} -y`);
+            branchName = branchName.toLowerCase();
+            await exec.exec(`terminus multidev:delete ${remoteName}.${sanitizeBranchName(branchName)} -y`);
 
             customLog('delete-multidev', `${branchName} has been deleted`);
             core.setOutput('multidev', `${branchName} has been deleted`);
@@ -120,9 +125,10 @@ const pantheon = (() => {
 
     async function createMultiDev(remoteName, branchName) {
         try {
-            await exec.exec(`terminus multidev:create ${remoteName} ${branchName}`);
+            await exec.exec(`terminus multidev:create ${remoteName} ${sanitizeBranchName(branchName)}`);
 
-            let multidevUrl = child_process.execSync(`terminus env:view --print ${remoteName}.${branchName }`);
+            let multidevUrl =
+                child_process.execSync(`terminus env:view --print ${remoteName}.${sanitizeBranchName(branchName)}`);
 
             customLog('create-multidev', `${branchName} has been created`);
             core.setOutput('multidev', `${multidevUrl} has been created`);
