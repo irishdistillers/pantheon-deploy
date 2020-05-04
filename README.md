@@ -2,53 +2,48 @@ This GitHub Action syncs your current issue branch to a remote Pantheon repo, us
 
 # Parameters
 
-- `PANTHEON_REPO_URL` [required]
-
-Remote GIT Repo URL (in pantheon)
-
-- `PANTHEON_SITE_ID` [required]
-
-Pantheon site id (or site.env in terminus e.g: domain)
-
-- `ACTION` [required]
-
-Action to run: create-multidev | delete-multidev | merge-to-dev
-
-- `BRANCH_NAME` [required]
-  
-The branch you want to send to Pantheon
-
-- `STRICT_BRANCH_NAME` [optional]
-
-Set to strict to enforce Jira ticket naming for branches (`none` by default)
-
+| `VALUE`              |                                                                                   |
+|----------------------|-----------------------------------------------------------------------------------|
+| `ACTION`             | Remote GIT Repo URL (in pantheon)                                                 |
+| `BRANCH_NAME`        | Name of the branch                                                                |
+| `STRICT_BRANCH_NAME` | Boolean, `strict` if branch needs to adhere to JIRA formatting (eg: `ABC-12-foo`) |
+| `PANTHEON_SITE_ID`   | UUID of the site (eg: `16c190c7-ee1f-4c27-80f9-cc403f8a64dd`)                     |
+| `PANTHEON_SITE_NAME` | Site name as seen in `terminus site:list --fields=name` (eg: `secret-speyside`)   |
+    
 # Dependencies
 
 This Github actions required that you:
 
 - Add an private SSH key in the SSH-agent and copy the public associated SSH key into Pantheon
-
 - Use a Github action that install Terminus E.g: https://github.com/kopepasah/setup-pantheon-terminus
 
 # Usage
 
 ```
-  - name: Create current branch to pantheon
+  - name: Create pantheon multidev
     uses: irishdistillers/pantheon-deploy@master
     with:
       ACTION: 'create-multidev'
-      PANTHEON_REPO_URL: 'url'
-      PANTHEON_SITE_ID: 'name'
-      BRANCH_NAME: 'some-1'
+      BRANCH_NAME: abc-12-foo
+      PANTHEON_SITE_ID: 16c190c7-ee1f-4c27-80f9-cc403f8a64dd
+      PANTHEON_SITE_NAME: secret-speyside
       STRICT_BRANCH_NAMES: 'strict'
 ```
 
 ```
-  - name: Delete/merge corresponding multidev in pantheon
+  - name: Delete corresponding multidev in pantheon
     uses: irishdistillers/pantheon-deploy@master
     with:
       ACTION: 'delete-multidev'
-      BRANCH_NAME: 'some-1'
-      PANTHEON_REPO_URL: 'url'
-      PANTHEON_SITE_ID: 'name'
+      BRANCH_NAME: abc-12-foo
+      PANTHEON_SITE_NAME: secret-speyside
+```
+
+```
+  - name: Merge changes to pantheon dev
+    uses: irishdistillers/pantheon-deploy@master
+    with:
+      ACTION: 'merge-to-dev'
+      BRANCH_NAME: abc-12-foo
+      PANTHEON_SITE_ID: 16c190c7-ee1f-4c27-80f9-cc403f8a64dd
 ```

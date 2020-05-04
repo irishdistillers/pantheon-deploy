@@ -15,25 +15,22 @@ const pantheon = (() => {
         action,
         branchName,
         siteId,
-        repoURL,
+        siteName,
         strictBranchName
     }) => {
+        hasTerminus();
+
         switch (action) {
             case "create-multidev":
-                hasTerminus();
                 isBranchNameValid(branchName, strictBranchName);
-                branchPush(repoURL, branchName);
-                createMultiDev(siteId, branchName);
+                branchPush(siteId, branchName);
+                createMultiDev(siteName, branchName);
                 break;
             case "merge-to-dev":
-                hasTerminus();
-                isBranchNameValid(branchName, strictBranchName);
-                branchPush(repoURL, branchName);
-                mergeToDev(siteId, branchName);
+                branchPush(siteId, branchName);
                 break;
             case "delete-multidev":
-                hasTerminus();
-                deleteMultiDev(siteId, branchName);
+                deleteMultiDev(siteName, branchName);
                 break;
             default:
                 customLog('error', `️️️Unknown action: ${action}`);
@@ -42,13 +39,26 @@ const pantheon = (() => {
         }
     }
 
-    const branchPush = (remoteUrl, branchName) => {
+    const generateRepoUrl = (siteId) => {
+        return `ssh://codeserver.dev.${ siteId }@codeserver.dev.${ siteId }.drush.in:2222/~/repository.git`;
+    }
+
+    const configureGit = (siteId) => {
         try {
             child_process.execSync("git config core.sshCommand 'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'");
-            child_process.execSync(`git remote add pantheon ${remoteUrl}`);
+            child_process.execSync(`git remote add pantheon ${generateRepoUrl(siteId)}`);
 
             child_process.execSync('git remote -v');
             child_process.execSync('git fetch --unshallow origin');
+        } catch (error) {
+            customLog('error', error.message);
+            process.abort();
+        }
+    }
+
+    const branchPush = (siteId, branchName) => {
+        try {
+            configureGit(siteId);
 
             child_process.execSync(`git checkout ${branchName}`);
             child_process.execSync(`git push pantheon ${branchName}:${branchName}`);
@@ -96,18 +106,6 @@ const pantheon = (() => {
         }
     }
 
-    async function mergeToDev(remoteName, branchName) {
-        try {
-            await exec.exec(`terminus multidev:merge-to-dev ${remoteName}.${branchName} -y`);
-
-            customLog('merge-multidev', `${branchName} has been merged`);
-            core.setOutput('multidev', `${branchName} has been merged`);
-        } catch (error) {
-            customLog('error', error.message);
-            process.abort();
-        }
-    }
-
     async function deleteMultiDev(remoteName, branchName) {
         try {
             await exec.exec(`terminus multidev:delete ${remoteName}.${branchName} -y`);
@@ -141,10 +139,10 @@ const pantheon = (() => {
 
 const run = () => {
     pantheon.init({
-        action: core.getInput('ACTION'),
+        action: core.getInput('ACTION', {'required': true}),
         branchName: core.getInput('BRANCH_NAME'),
         siteId: core.getInput('PANTHEON_SITE_ID'),
-        repoURL: core.getInput('PANTHEON_REPO_URL'),
+        siteName: core.getInput('PANTHEON_SITE_NAME'),
         strictBranchName: core.getInput('STRICT_BRANCH_NAME')
     });
 };
