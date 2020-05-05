@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 const core = require('@actions/core');
-const exec = require('@actions/exec');
 const child_process = require('child_process');
 
 const successItems = ["🦾", "✅", "👍", "😎", "🤓", "😊", "🎉", "🔥", "👷", "🏄"]
@@ -83,7 +82,7 @@ const pantheon = (() => {
         customLog('check-branch', `Branch name ${branchName} is correct`);
     }
 
-    customLog = (outputName, string) => {
+    const customLog = (outputName, string) => {
         const output = JSON.stringify(string);
 
         if ('error' == outputName) {
@@ -96,9 +95,9 @@ const pantheon = (() => {
         console.log(randItem + " " + outputName, output);
     }
 
-    async function hasTerminus() {
+    const hasTerminus = () => {
         try {
-            await exec.exec('terminus -V');
+            child_process.execSync('terminus -V');
             customLog('setup-terminus', 'Terminus is set and ready to go');
         } catch (error) {
             customLog('error', 'Terminus is missing');
@@ -106,14 +105,14 @@ const pantheon = (() => {
         }
     }
 
-    async function sanitizeBranchName(branchName) {
+    const sanitizeBranchName = (branchName) => {
         return branchName.toLowerCase();
     }
 
-    async function deleteMultiDev(remoteName, branchName) {
+    const deleteMultiDev = (remoteName, branchName) => {
         try {
             branchName = branchName.toLowerCase();
-            await exec.exec(`terminus multidev:delete ${remoteName}.${sanitizeBranchName(branchName)} -y`);
+            child_process.execSync(`terminus multidev:delete ${remoteName}.${sanitizeBranchName(branchName)} -y`);
 
             customLog('delete-multidev', `${branchName} has been deleted`);
             core.setOutput('multidev', `${branchName} has been deleted`);
@@ -123,9 +122,9 @@ const pantheon = (() => {
         }
     }
 
-    async function createMultiDev(remoteName, branchName) {
+    const createMultiDev = (remoteName, branchName) => {
         try {
-            await exec.exec(`terminus multidev:create ${remoteName} ${sanitizeBranchName(branchName)}`);
+            child_process.execSync(`terminus multidev:create ${remoteName} ${sanitizeBranchName(branchName)}`);
 
             let multidevUrl =
                 child_process.execSync(`terminus env:view --print ${remoteName}.${sanitizeBranchName(branchName)}`);
