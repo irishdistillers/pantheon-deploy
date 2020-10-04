@@ -4,7 +4,7 @@
   "description": "This GitHub Action deploys your current issue branch to a remote Pantheon repo.",
   "main": "src/index.js",
   "dependencies": {
-    "@actions/core": "^1.2.3",
+    "@actions/core": "^1.2.6",
     "@actions/github": "^2.1.1",
     "child_process": "^1.0.2"
   },
